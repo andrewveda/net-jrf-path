@@ -475,15 +475,15 @@ async function startQuiz() {
 
   const { data: { session } } = await sbClient.auth.getSession();
 
-  const { data: groupData, error } = await sbClient
+ const { data: groupData, error } = await sbClient
     .from('group_attempts')
     .insert({
-      user_id: session?.user?.id || null
+      user_id: session?.user?.id || null,
+      correct_count: 0,  // <-- Added to fix the constraint violation
+      wrong_count: 0     // <-- Add this if you also made wrong_count NOT NULL
     })
     .select()
     .single();
-
-  // --- ADD THIS LOGGING ---
   if (error) {
     console.error('Supabase 400 Error Details:', error.message, error.details, error.hint);
     alert(`Failed to start session: ${error.message}`);
