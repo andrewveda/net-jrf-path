@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
+/* Keeping your exact original CSS */
 :root {
   --bg-main: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
   --card-bg: #ffffff;
@@ -277,13 +278,11 @@ body {
 <body>
 <div class="container" id="quizContainer">
 
-  <!-- LOADING -->
   <div id="loadingScreen">
     <div class="loader"></div>
     <p style="color:var(--text-muted); font-weight:600;">Loading your questions…</p>
   </div>
 
-  <!-- NAME FORM -->
   <div id="nameForm" style="display:none;">
     <div class="hero-quote">
       <div class="hero-text">We love trying!</div>
@@ -312,7 +311,6 @@ body {
     <button onclick="beginQuiz()">Start Quiz 🚀</button>
   </div>
 
-  <!-- QUIZ SCREEN -->
   <div id="quizContent" style="display:none;">
     <div class="quiz-header">
       <div id="timer">⏳ 0s</div>
@@ -326,7 +324,6 @@ body {
     <div id="explanationArea"></div>
   </div>
 
-  <!-- SCORE SCREEN -->
   <div id="scoreScreen" style="display:none; padding-top:2rem;"></div>
 
 </div>
@@ -338,7 +335,7 @@ const SUPABASE_URL = 'https://rrxxthnfugzjhqjvbiyf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  let pageAttempts = {};
+let pageAttempts = {};
 let groupAttemptId = null;
 let rawQuestions = [];   // flat list from Supabase/localStorage
 let quizGroups = [];     // grouped into sets of 3 for the matching format
@@ -772,7 +769,35 @@ function downloadPDF() {
 }
 
 // ---- INIT ----
-loadQuestions();
+async function verifyAccess() {
+  const { data: { session } } = await sbClient.auth.getSession();
+
+  if (!session) {
+    window.location.href = './index.html';
+    return false;
+  }
+
+  const { data } = await sbClient
+    .from('allowed_users')
+    .select('email')
+    .eq('email', session.user.email)
+    .maybeSingle();
+
+  if (!data) {
+    await sbClient.auth.signOut();
+    window.location.href = 'https://andrewveda.github.io/register';
+    return false;
+  }
+
+  return true;
+}
+
+(async () => {
+  const ok = await verifyAccess();
+  if (!ok) return;
+  
+  loadQuestions();
+})();
 </script>
 </body>
 </html>
