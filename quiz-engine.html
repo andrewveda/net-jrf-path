@@ -335,7 +335,7 @@ const SUPABASE_URL = 'https://rrxxthnfugzjhqjvbiyf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let pageAttempts = {};
+let pageAttempts = [];
 let groupAttemptId = null;
 let rawQuestions = [];   // flat list from Supabase/localStorage
 let quizGroups = [];     // grouped into sets of 3 for the matching format
@@ -533,14 +533,18 @@ function placeOption(dropZone) {
   const answer = selectedOption.innerText;
   const correctAnswer = dropZone.dataset.answer;
 
+  const item = quizGroups[current].questionItems.find(
+    q => q.answer === correctAnswer
+  );
+
   if (answer === correctAnswer) {
     triggerConfetti(); playApplause();
     correctCount++; 
-    const item = quizGroups[current].questionItems.find(
-  q => q.answer === correctAnswer
-);
-
-pageAttempts[item.id] = true; gemsCount++;
+    
+    // Push correct attempt to the ledger
+    pageAttempts.push({ id: item.id, isCorrect: true }); 
+    
+    gemsCount++;
     const gc = document.getElementById('gemsCounter');
     gc.innerText = `💎 ${gemsCount}`;
     gc.classList.add('gem-pop'); setTimeout(() => gc.classList.remove('gem-pop'), 500);
@@ -557,17 +561,17 @@ pageAttempts[item.id] = true; gemsCount++;
       document.getElementById('explanationArea').appendChild(expDiv);
     }
   } else {
-    playWrong(); totalWrongGuesses--; gemsCount--;
+    playWrong(); totalWrongGuesses++; gemsCount--;
+    
+    // Push wrong attempt to the ledger
+    pageAttempts.push({ id: item.id, isCorrect: false });
+    
     document.getElementById('gemsCounter').innerText = `💎 ${gemsCount}`;
     showMotivation(false);
     dropZone.classList.add('wrong');
     setTimeout(() => dropZone.classList.remove('wrong'), 600);
     if (!wrongGroups.includes(quizGroups[current])) wrongGroups.push(quizGroups[current]);
- const item = quizGroups[current].questionItems.find(
-  q => q.answer === correctAnswer
-);
-
-pageAttempts[item.id] = false; }
+  }
 
   selectedOption.classList.remove('selected'); selectedOption = null;
 
@@ -575,8 +579,8 @@ pageAttempts[item.id] = false; }
   const remaining = document.querySelectorAll('.drop-zone:not(.filled)');
   if (remaining.length === 0) {
     setTimeout(async () => {
-    await saveCurrentPage();
-current++;
+      await saveCurrentPage();
+      current++;
       if (current >= quizGroups.length && wrongGroups.length > 0) {
         quizGroups.push(...wrongGroups); wrongGroups = [];
       }
@@ -594,7 +598,7 @@ function startTimer() {
 }
 
 function calculateAccuracy() {
-  const total = correctCount + Math.abs(totalWrongGuesses);
+  const total = correctCount + totalWrongGuesses; 
   return total === 0 ? 100 : Math.round((correctCount / total) * 100);
 }
 function getAccuracyColor(acc) {
@@ -651,7 +655,7 @@ function showScore() {
     </div>
     <div class="stats-grid">
       <div class="stat-card correct-card"><div class="stat-emoji">✅</div><div class="stat-value">${correctCount}</div><div class="stat-label">Correct</div></div>
-      <div class="stat-card wrong-card"><div class="stat-emoji">❌</div><div class="stat-value">${Math.abs(totalWrongGuesses)}</div><div class="stat-label">Wrong</div></div>
+    <div class="stat-card wrong-card"><div class="stat-emoji">❌</div><div class="stat-value">${totalWrongGuesses}</div><div class="stat-label">Wrong</div></div>
       <div class="stat-card gems-card"><div class="stat-emoji">💎</div><div class="stat-value">${gemsCount}</div><div class="stat-label">Gems</div></div>
       <div class="stat-card time-card"><div class="stat-emoji">⏱️</div><div class="stat-value">${timeStr}</div><div class="stat-label">Time</div></div>
     </div>
@@ -667,32 +671,29 @@ function showScore() {
 
 }
 async function saveCurrentPage() {
-  if (Object.keys(pageAttempts).length === 0) return;
+  if (pageAttempts.length === 0) return;
 
-  const { data:{session} } = await sbClient.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
 
-const rows = Object.entries(pageAttempts).map(
-  ([questionId, isCorrect]) => ({
+  // Map the array ledger into Supabase rows
+  const rows = pageAttempts.map(attempt => ({
     group_attempt_id: groupAttemptId,
     user_id: session?.user?.id || null,
-    question_id: Number(questionId),
-    is_correct: isCorrect
-  })
-);
+    question_id: attempt.id,
+    is_correct: attempt.isCorrect
+  }));
 
-  await sbClient
+  const { error } = await sbClient
     .from('student_attempts')
     .insert(rows);
-const { error } = await sbClient
-  .from('student_attempts')
-  .insert(rows);
 
-if (error) {
-  console.error('Error saving page:', error);
+  if (error) {
+    console.error('Error saving page:', error);
+  }
+  
+  // Clear the array for the next page
+  pageAttempts = []; 
 }
-  pageAttempts = {};
-}
-
 
 // ---- PDF ----
 function downloadPDF() {
@@ -726,7 +727,7 @@ function downloadPDF() {
     body: [
       ['Total Groups', quizGroups.length.toString()],
       ['Correct Answers', correctCount.toString()],
-      ['Wrong Attempts', Math.abs(totalWrongGuesses).toString()],
+      ['Wrong Attempts', totalWrongGuesses.toString()], // <-- Removed Math.abs
       ['Gems Earned', gemsCount.toString()],
       ['Accuracy', calculateAccuracy() + '%'],
       ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
