@@ -30,39 +30,65 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ';
   const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // 1. Fetch available tags
-  async function loadTags() {
-    const { data: tags } = await client.from('tags').select('*');
-    const container = document.getElementById('tagContainer');
-    container.innerHTML = tags.map(t => `
-      <div class="tag-btn" onclick="this.classList.toggle('active')" data-id="${t.id}">
-        ${t.name}
-      </div>
-    `).join('');
+ async function loadTags() {
+
+  const { data, error } = await client
+    .from('questions')
+    .select('tags');
+
+  if (error) {
+    console.error(error);
+    return;
   }
 
+  const uniqueTags = [
+    ...new Set(
+      data.flatMap(q => q.tags || [])
+    )
+  ].sort();
+
+  const container =
+    document.getElementById('tagContainer');
+
+  container.innerHTML = uniqueTags.map(tag => `
+    <div
+      class="tag-btn"
+      onclick="this.classList.toggle('active')"
+      data-tag="${tag}">
+      ${tag}
+    </div>
+  `).join('');
+}
   // 2. Fetch questions based on tags and redirect/start
   async function startStudySession() {
-    const activeTags = Array.from(document.querySelectorAll('.tag-btn.active')).map(btn => btn.dataset.id);
-    
+   const activeTags =
+  Array.from(
+    document.querySelectorAll('.tag-btn.active')
+  ).map(btn => btn.dataset.tag);
     if (activeTags.length === 0) return alert("Select at least one tag!");
-
-    // This fetches questions that are linked to the selected tags
-    const { data: questions, error } = await client
-      .from('questions')
-      .select(`
-        id, 
-        question_text, 
-        correct_answer,
-        question_tags!inner(tag_id)
-      `)
-      .in('question_tags.tag_id', activeTags);
-
+const { data: questions, error } = await client
+  .from('questions')
+  .select(`
+      id,
+      question_text,
+      answer_text,
+      explanation,
+      tags,
+      year
+  `)
+  .overlaps('tags', activeTags);
     if (error) { console.error(error); return; }
-    
-    // Here you would store the questions in localStorage or a state manager
-    // and transition to your quiz engine interface
-    localStorage.setItem('study_questions', JSON.stringify(questions));
+    if (!questions || questions.length === 0) {
+  alert("No questions found for selected tags.");
+  return;
+}
+    const shuffled =
+  [...questions].sort(() => Math.random() - 0.5);
+
+localStorage.setItem(
+  'study_questions',
+  JSON.stringify(shuffled)
+);
     window.location.href = './quiz-engine.html'; 
   }
 
