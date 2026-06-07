@@ -471,24 +471,33 @@ function beginQuiz() {
 async function startQuiz() {
   current = 0; correctCount = 0; totalWrongGuesses = 0; gemsCount = 0; wrongGroups = [];
   startTime = Date.now();
-document.getElementById('gemsCounter').innerText = '💎 0';
+  document.getElementById('gemsCounter').innerText = '💎 0';
 
-const { data:{session} } = await sbClient.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
 
-const { data:groupData, error } = await sbClient
-  .from('group_attempts')
-  .insert({
-    user_id: session?.user?.id || null
-  })
-  .select()
-  .single();
+  const { data: groupData, error } = await sbClient
+    .from('group_attempts')
+    .insert({
+      user_id: session?.user?.id || null
+    })
+    .select()
+    .single();
 
-if (!error) {
-  groupAttemptId = groupData.id;
+  // --- ADD THIS LOGGING ---
+  if (error) {
+    console.error('Supabase 400 Error Details:', error.message, error.details, error.hint);
+    alert(`Failed to start session: ${error.message}`);
+    return; // Stop the quiz from starting if the DB insert fails
+  }
+  // ------------------------
+
+  if (groupData) {
+    groupAttemptId = groupData.id;
+  }
+
+  loadQuestion();
+  startTimer(); 
 }
-
-loadQuestion();
-startTimer(); }
 
 // ---- LOAD QUESTION GROUP ----
 function loadQuestion() {
