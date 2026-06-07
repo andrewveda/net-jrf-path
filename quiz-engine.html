@@ -670,7 +670,7 @@ function showScore() {
 
 }
 async function saveCurrentPage() {
-  if (pageAttempts.length === 0) return;
+  if (Object.keys(pageAttempts).length === 0) return;
 
   const { data:{session} } = await sbClient.auth.getSession();
 
@@ -686,7 +686,13 @@ const rows = Object.entries(pageAttempts).map(
   await sbClient
     .from('student_attempts')
     .insert(rows);
+const { error } = await sbClient
+  .from('student_attempts')
+  .insert(rows);
 
+if (error) {
+  console.error('Error saving page:', error);
+}
   pageAttempts = {};
 }
 
