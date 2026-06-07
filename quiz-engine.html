@@ -479,8 +479,9 @@ async function startQuiz() {
     .from('group_attempts')
     .insert({
       user_id: session?.user?.id || null,
-      correct_count: 0,  // <-- Added to fix the constraint violation
-      wrong_count: 0     // <-- Add this if you also made wrong_count NOT NULL
+      correct_count: 0,  
+      wrong_count: 0     
+      time_spent_seconds: 0
     })
     .select()
     .single();
