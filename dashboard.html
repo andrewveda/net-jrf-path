@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard · NET JRF ENGLISH</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1510;
+      --paper: #f5f0e8;
+      --accent: #c0392b;
+      --accent-light: #e8d5c4;
+      --gold: #b8860b;
+      --muted: #6b5e52;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Gate — shown while verifying */
+    #gate {
+      position: fixed;
+      inset: 0;
+      background: var(--paper);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 100;
+    }
+
+    #gate.hidden { display: none; }
+
+    .gate-spinner {
+      width: 28px; height: 28px;
+      border: 2.5px solid rgba(26,21,16,0.12);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .gate-text {
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Main layout */
+    #app {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+      opacity: 0;
+      animation: none;
+    }
+
+    #app.visible {
+      animation: fadeUp 0.5s ease 0.1s both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Nav */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.8rem 0;
+      border-bottom: 1px solid rgba(26,21,16,0.1);
+      margin-bottom: 3rem;
+    }
+
+    .nav-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+
+    .nav-brand span {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    #userEmail {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .btn-signout {
+      background: none;
+      border: 1px solid rgba(26,21,16,0.2);
+      border-radius: 3px;
+      padding: 0.4rem 0.9rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-signout:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    /* Hero */
+    .hero {
+      margin-bottom: 3.5rem;
+    }
+
+    .eyebrow {
+      font-size: 0.72rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 0.8rem;
+    }
+
+    .hero p {
+      font-size: 1rem;
+      color: var(--muted);
+      font-weight: 300;
+      line-height: 1.7;
+      max-width: 520px;
+    }
+
+    /* Placeholder card grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 6px;
+      padding: 1.8rem;
+      border: 1px solid rgba(26,21,16,0.07);
+      box-shadow: 0 2px 12px rgba(26,21,16,0.04);
+      transition: box-shadow 0.2s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px;
+      height: 100%;
+      background: var(--accent);
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform 0.25s ease;
+    }
+
+    .card:hover { box-shadow: 0 6px 24px rgba(26,21,16,0.09); transform: translateY(-2px); }
+    .card:hover::before { transform: scaleY(1); }
+
+    .card-icon {
+      width: 36px; height: 36px;
+      background: var(--accent-light);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.1rem;
+      font-size: 1.1rem;
+    }
+
+    .card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .placeholder-badge {
+      display: inline-block;
+      margin-top: 0.8rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(184,134,11,0.1);
+      padding: 0.25rem 0.6rem;
+      border-radius: 2px;
+    }
+
+    @media (max-width: 600px) {
+      nav { flex-direction: column; gap: 0.8rem; align-items: flex-start; }
+      #userEmail { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Verification gate -->
+<div id="gate">
+  <div class="gate-spinner"></div>
+  <div class="gate-text">Verifying access…</div>
+</div>
+
+<!-- Main app (shown only after auth verified) -->
+<div id="app">
+  <nav>
+    <div class="nav-brand">SRM VEC English <span>/ Portal</span></div>
+    <div class="nav-right">
+      <span id="userEmail"></span>
+      <button class="btn-signout" onclick="signOut()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <p class="eyebrow">Member Dashboard</p>
+    <h1>Hello, <span id="userName">there</span>.</h1>
+    <p>Welcome to the SRM VEC English portal. Content and resources will appear here.</p>
+  </div>
+
+  <!-- Placeholder content cards -->
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">📚</div>
+      <h3>Resources</h3>
+      <p>Course materials, reading lists, and study guides curated for members.</p>
+      <span class="placeholder-badge">Coming soon</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">📝</div>
+      <h3>Assignments</h3>
+      <p>Track your submissions, deadlines, and instructor feedback in one place.</p>
+      <span class="placeholder-badge">Coming soon</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🗓</div>
+      <h3>Events</h3>
+      <p>Literary events, workshops, and department announcements.</p>
+      <span class="placeholder-badge">Coming soon</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">💬</div>
+      <h3>Discussion</h3>
+      <p>Engage with peers and faculty on course topics and literary analysis.</p>
+      <span class="placeholder-badge">Coming soon</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://rrxxthnfugzjhqjvbiyf.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ'; 
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function init() {
+    const { data: { session } } = await client.auth.getSession();
+
+    if (!session) {
+      // No session — back to login
+      window.location.href = './index.html';
+      return;
+    }
+
+    const email = session.user.email;
+
+    // Re-verify whitelist on every dashboard load
+    const { data, error } = await client
+      .from('allowed_users')
+      .select('email')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error || !data) {
+      await client.auth.signOut();
+      window.location.href = 'https://andrewveda.github.io/register';
+      return;
+    }
+
+    // Access confirmed — show the page
+    const name = session.user.user_metadata?.full_name?.split(' ')[0] || email.split('@')[0];
+    document.getElementById('userName').textContent = name;
+    document.getElementById('userEmail').textContent = email;
+
+    document.getElementById('gate').classList.add('hidden');
+    const app = document.getElementById('app');
+    app.classList.add('visible');
+  }
+
+  async function signOut() {
+    await client.auth.signOut();
+    window.location.href = './index.html';
+  }
+
+  init();
+</script>
+</body>
+</html>
