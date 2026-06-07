@@ -338,7 +338,8 @@ const SUPABASE_URL = 'https://rrxxthnfugzjhqjvbiyf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ---- STATE ----
+  let pageAttempts = {};
+let groupAttemptId = null;
 let rawQuestions = [];   // flat list from Supabase/localStorage
 let quizGroups = [];     // grouped into sets of 3 for the matching format
 let current = 0, wrongGroups = [], correctCount = 0, totalWrongGuesses = 0;
@@ -437,7 +438,12 @@ function groupQuestions() {
     const chunk = shuffled.slice(i, i+3);
     if (chunk.length === 0) break;
     quizGroups.push({
-      questionItems: chunk.map(q => ({ word: q.question_text, answer: q.answer_text, explanation: q.explanation || null })),
+    questionItems: chunk.map(q => ({
+  id: q.id,
+  word: q.question_text,
+  answer: q.answer_text,
+  explanation: q.explanation || null
+})),
       answers: chunk.map(q => q.answer_text)
     });
   }
@@ -465,12 +471,27 @@ function beginQuiz() {
   startQuiz();
 }
 
-function startQuiz() {
+async function startQuiz() {
   current = 0; correctCount = 0; totalWrongGuesses = 0; gemsCount = 0; wrongGroups = [];
   startTime = Date.now();
-  document.getElementById('gemsCounter').innerText = '💎 0';
-  loadQuestion(); startTimer();
+document.getElementById('gemsCounter').innerText = '💎 0';
+
+const { data:{session} } = await sbClient.auth.getSession();
+
+const { data:groupData, error } = await sbClient
+  .from('group_attempts')
+  .insert({
+    user_id: session?.user?.id || null
+  })
+  .select()
+  .single();
+
+if (!error) {
+  groupAttemptId = groupData.id;
 }
+
+loadQuestion();
+startTimer(); }
 
 // ---- LOAD QUESTION GROUP ----
 function loadQuestion() {
@@ -517,7 +538,12 @@ function placeOption(dropZone) {
 
   if (answer === correctAnswer) {
     triggerConfetti(); playApplause();
-    correctCount++; gemsCount++;
+    correctCount++; 
+    const item = quizGroups[current].questionItems.find(
+  q => q.answer === correctAnswer
+);
+
+pageAttempts[item.id] = true; gemsCount++;
     const gc = document.getElementById('gemsCounter');
     gc.innerText = `💎 ${gemsCount}`;
     gc.classList.add('gem-pop'); setTimeout(() => gc.classList.remove('gem-pop'), 500);
@@ -540,15 +566,20 @@ function placeOption(dropZone) {
     dropZone.classList.add('wrong');
     setTimeout(() => dropZone.classList.remove('wrong'), 600);
     if (!wrongGroups.includes(quizGroups[current])) wrongGroups.push(quizGroups[current]);
-  }
+ const item = quizGroups[current].questionItems.find(
+  q => q.answer === correctAnswer
+);
+
+pageAttempts[item.id] = false; }
 
   selectedOption.classList.remove('selected'); selectedOption = null;
 
   // Check if all filled
   const remaining = document.querySelectorAll('.drop-zone:not(.filled)');
   if (remaining.length === 0) {
-    setTimeout(() => {
-      current++;
+    setTimeout(async () => {
+    await saveCurrentPage();
+current++;
       if (current >= quizGroups.length && wrongGroups.length > 0) {
         quizGroups.push(...wrongGroups); wrongGroups = [];
       }
@@ -636,25 +667,29 @@ function showScore() {
 </div>`;
 
   setTimeout(() => animateAccuracy(accuracy), 80);
-  saveAttempt(totalTime, accuracy);
+
+}
+async function saveCurrentPage() {
+  if (pageAttempts.length === 0) return;
+
+  const { data:{session} } = await sbClient.auth.getSession();
+
+const rows = Object.entries(pageAttempts).map(
+  ([questionId, isCorrect]) => ({
+    group_attempt_id: groupAttemptId,
+    user_id: session?.user?.id || null,
+    question_id: Number(questionId),
+    is_correct: isCorrect
+  })
+);
+
+  await sbClient
+    .from('student_attempts')
+    .insert(rows);
+
+  pageAttempts = {};
 }
 
-// ---- SAVE ATTEMPT TO SUPABASE ----
-async function saveAttempt(totalTime, accuracy) {
-  try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    await sbClient.from('student_attempts').insert({
-      student_name: playerName,
-      department: playerDept,
-      correct: correctCount,
-      wrong: Math.abs(totalWrongGuesses),
-      time_spent: totalTime,
-      accuracy: accuracy,
-      user_id: session?.user?.id || null,
-      quest_id: 'dynamic-' + new Date().toISOString().slice(0,10)
-    });
-  } catch(e) { console.warn('Could not save attempt:', e); }
-}
 
 // ---- PDF ----
 function downloadPDF() {
