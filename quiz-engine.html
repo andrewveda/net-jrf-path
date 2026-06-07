@@ -480,7 +480,7 @@ async function startQuiz() {
     .insert({
       user_id: session?.user?.id || null,
       correct_count: 0,  
-      wrong_count: 0     
+      wrong_count: 0,    
       time_spent_seconds: 0
     })
     .select()
