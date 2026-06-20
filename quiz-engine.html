@@ -579,10 +579,10 @@ function placeOption(dropZone) {
     dropZone.classList.add('wrong');
     setTimeout(() => dropZone.classList.remove('wrong'), 600);
 
-    // Add this group to wrong pile (once) and update tracker immediately
+    // Push repeat directly into quizGroups NOW so length grows immediately
     if (!wrongGroups.includes(quizGroups[current])) {
       wrongGroups.push(quizGroups[current]);
-      repeatCount++;
+      quizGroups.push(quizGroups[current]);
       updateProgressTracker();
     }
   }
@@ -595,9 +595,8 @@ function placeOption(dropZone) {
     setTimeout(async () => {
       await saveCurrentPage();
       current++;
-      if (current >= quizGroups.length && wrongGroups.length > 0) {
-        quizGroups.push(...wrongGroups); wrongGroups = [];
-      }
+      // repeats already in quizGroups; just clear wrongGroups
+      wrongGroups = [];
       loadQuestion();
     }, 1000);
   }
