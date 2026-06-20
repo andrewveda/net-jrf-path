@@ -469,8 +469,7 @@ async function startQuiz() {
 function updateProgressTracker() {
   const total = quizGroups.length;
   const pos   = current + 1;
-  const extra = repeatCount > 0 ? ` (+${repeatCount})` : '';
-  document.getElementById('progressTracker').innerText = `📍 ${pos} of ${total}${extra}`;
+  document.getElementById('progressTracker').innerText = `📍 ${pos} of ${total}`;
 }
 
 // ---- LOAD QUESTION GROUP ----
