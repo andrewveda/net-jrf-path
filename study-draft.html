@@ -4,9 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Study Session · NET JRF PATH</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
 :root {
   --bg:#0e0b05;
@@ -17,12 +17,12 @@
   --emerald:#3a8f6a;
   --emerald-dim:rgba(58,143,106,0.15);
   --emerald-border:rgba(58,143,106,0.35);
+  --amber:#e8a020;
   --text:#F9F3E3;
   --ash:rgba(249,243,227,0.38);
   --ash2:rgba(249,243,227,0.18);
   --surface:rgba(201,168,76,0.055);
   --rule:rgba(201,168,76,0.13);
-  --danger:#8B2020;
 }
 html.light {
   --bg:#f5efe0;
@@ -33,22 +33,18 @@ html.light {
   --emerald:#2a7a58;
   --emerald-dim:rgba(42,122,88,0.12);
   --emerald-border:rgba(42,122,88,0.35);
+  --amber:#b87000;
   --text:#2a1f00;
   --ash:rgba(42,31,0,0.45);
   --ash2:rgba(42,31,0,0.20);
   --surface:rgba(138,94,0,0.06);
   --rule:rgba(138,94,0,0.14);
-  --danger:#9a1a1a;
 }
-
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;transition:background .3s,color .3s;}
 body{min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;}
-
-/* ── PATTERN ── */
 body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  opacity:.018;
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.018;
   background-image:
     repeating-linear-gradient(45deg,transparent,transparent 40px,var(--gold) 40px,var(--gold) 41px),
     repeating-linear-gradient(-45deg,transparent,transparent 40px,var(--gold) 40px,var(--gold) 41px);
@@ -59,115 +55,69 @@ body::before{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 16px 0;flex-shrink:0;position:relative;z-index:10;
 }
-.chrome-left{display:flex;align-items:center;gap:8px;}
 .wordmark{
   font-family:'Playfair Display',serif;font-size:13px;font-weight:400;
   letter-spacing:.18em;color:var(--gold-light);opacity:.7;
 }
-.theme-btn{
-  font-size:13px;cursor:pointer;background:none;border:none;
-  color:var(--gold);opacity:.6;padding:2px;
+.chrome-right{display:flex;gap:8px;align-items:center;}
+.player-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border:1px solid var(--gold-border);border-radius:20px;
+  font-size:9px;color:var(--gold);letter-spacing:.09em;
+  background:var(--gold-dim);
 }
+.pip{width:5px;height:5px;border-radius:50%;background:var(--emerald);flex-shrink:0;}
+.theme-btn{font-size:13px;cursor:pointer;background:none;border:none;color:var(--gold);opacity:.6;padding:2px;}
 
-/* ── HERO / PAGE TITLE ── */
-.page-hero{
+/* ── HERO ── */
+.hero{
   position:relative;z-index:1;
-  padding:22px 16px 10px;
+  display:flex;align-items:center;justify-content:center;gap:0;
+  padding:18px 20px 14px;
 }
-.page-hero-title{
+.hero-ring-wrap{position:relative;width:96px;height:96px;flex-shrink:0;}
+.hero-ring-wrap svg{width:96px;height:96px;transform:rotate(-90deg);}
+.ring-track{fill:none;stroke:var(--ash2);stroke-width:4;}
+.ring-fill{
+  fill:none;stroke:var(--gold);stroke-width:4;stroke-linecap:round;
+  stroke-dasharray:264;stroke-dashoffset:264;
+  transition:stroke-dashoffset 1.8s cubic-bezier(.22,1,.36,1),stroke .4s;
+  filter:drop-shadow(0 0 5px rgba(201,168,76,.35));
+}
+.ring-fill.complete{stroke:var(--emerald);}
+.hero-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.hero-pct{
   font-family:'Playfair Display',serif;font-size:26px;font-weight:700;
-  color:var(--gold-light);letter-spacing:.03em;line-height:1.15;margin-bottom:4px;
+  color:var(--gold-light);line-height:1;letter-spacing:-.01em;
 }
-.page-hero-sub{
-  font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--ash);
+.hero-pct-label{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash);margin-top:2px;}
+
+.hero-stats{
+  display:flex;flex-direction:column;gap:10px;
+  padding-left:20px;border-left:1px solid var(--rule);margin-left:4px;
 }
+.hero-stat{display:flex;flex-direction:column;gap:1px;}
+.hero-stat-num{
+  font-family:'Playfair Display',serif;font-size:22px;font-weight:700;
+  color:var(--gold-light);line-height:1;letter-spacing:-.01em;
+}
+.hero-stat-num.skel{
+  display:inline-block;width:44px;height:20px;
+  background:var(--ash2);border-radius:4px;animation:sk 1.4s ease infinite;
+}
+.hero-stat-lbl{font-size:7px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash);}
 
 /* ── SECTIONS ── */
 .sections{
   flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:0 14px 100px;position:relative;z-index:1;
+  padding:0 14px 110px;position:relative;z-index:1;
 }
 .section{margin-bottom:6px;}
 .section-head{
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 0 6px;border-bottom:1px solid var(--rule);margin-bottom:1px;
 }
-.section-name{
-  font-size:8px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);opacity:.55;
-}
-.section-meta{font-size:8px;letter-spacing:.1em;color:var(--ash);opacity:.7;}
-
-/* ── TAG ROW ── */
-@keyframes rowIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
-
-.tag-row{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 0 9px 10px;
-  border-bottom:1px solid var(--ash2);
-  cursor:pointer;
-  position:relative;
-  transition:background .15s;
-  box-shadow:inset 3px 0 0 var(--ash2);
-  animation:rowIn .4s ease both;
-  user-select:none;
-  -webkit-tap-highlight-color:transparent;
-}
-.tag-row:active{background:var(--gold-dim);}
-.tag-row.selected{
-  box-shadow:inset 3px 0 0 var(--gold);
-  background:var(--gold-dim);
-}
-
-.tag-icon{font-size:14px;line-height:1;flex-shrink:0;width:18px;text-align:center;}
-.tag-info{flex:1;min-width:0;}
-.tag-name{
-  font-size:11px;font-weight:500;letter-spacing:.04em;
-  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.tag-count{
-  font-size:8px;letter-spacing:.06em;color:var(--ash);margin-top:1px;
-}
-
-.tag-check{
-  width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ash2);
-  flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;font-size:10px;color:transparent;
-}
-.tag-row.selected .tag-check{
-  background:var(--gold);border-color:var(--gold);color:#0e0b05;
-}
-
-/* ── SKELETON ── */
-.tag-row-skel{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 0 9px 10px;border-bottom:1px solid var(--ash2);
-}
-.skel-block{background:var(--ash2);border-radius:3px;animation:sk 1.4s ease infinite;}
-@keyframes sk{0%,100%{opacity:.25}50%{opacity:.65}}
-
-/* ── STICKY FOOTER CTA ── */
-.cta-bar{
-  position:fixed;bottom:0;left:0;right:0;z-index:50;
-  padding:12px 16px max(12px, env(safe-area-inset-bottom));
-  background:linear-gradient(to top, var(--bg) 70%, transparent);
-  display:flex;flex-direction:column;align-items:stretch;gap:6px;
-}
-.cta-selected{
-  font-size:8px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--ash);text-align:center;min-height:12px;
-  transition:opacity .2s;
-}
-.cta-btn{
-  background:linear-gradient(135deg,var(--gold),#8a5e00);color:#0e0b05;border:none;
-  border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;
-  font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
-  transition:opacity .2s, transform .1s;
-  -webkit-tap-highlight-color:transparent;
-}
-.cta-btn:active{transform:scale(.97);}
-.cta-btn:disabled{opacity:.35;cursor:not-allowed;}
-
-/* ── SELECT ALL PILL ── */
+.section-name{font-size:8px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);opacity:.55;}
 .select-all-pill{
   display:inline-flex;align-items:center;gap:4px;
   padding:3px 10px;border:1px solid var(--gold-border);border-radius:20px;
@@ -176,62 +126,149 @@ body::before{
 }
 .select-all-pill:hover{border-color:var(--gold);}
 
-/* ── FOOTER ── */
+/* ── TAG ROW ── */
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+.tag-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 0 9px 10px;
+  border-bottom:1px solid var(--ash2);
+  cursor:pointer;position:relative;
+  transition:background .15s;
+  box-shadow:inset 3px 0 0 var(--ash2);
+  animation:rowIn .4s ease both;
+  user-select:none;
+}
+.tag-row:active{background:var(--gold-dim);}
+.tag-row.selected{box-shadow:inset 3px 0 0 var(--gold);background:var(--gold-dim);}
+.tag-row.untouched{box-shadow:inset 3px 0 0 var(--ash2);}
+.tag-row.in-progress{box-shadow:inset 3px 0 0 var(--gold);}
+.tag-row.mastered{box-shadow:inset 3px 0 0 var(--emerald));}
+.tag-row.selected.mastered{background:var(--emerald-dim);}
+
+.tag-icon{font-size:14px;line-height:1;flex-shrink:0;width:18px;text-align:center;}
+.tag-info{flex:1;min-width:0;}
+.tag-name{
+  font-size:11px;font-weight:500;letter-spacing:.04em;
+  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tag-sub{font-size:8px;letter-spacing:.06em;color:var(--ash);margin-top:1px;}
+
+.tag-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.tag-pct{
+  font-family:'Playfair Display',serif;font-size:12px;
+  color:var(--gold);min-width:32px;text-align:right;
+}
+.tag-row.untouched .tag-pct{color:var(--ash);}
+.tag-row.mastered .tag-pct{color:var(--emerald);}
+
+/* micro arc */
+.micro-arc{width:20px;height:20px;flex-shrink:0;}
+.micro-arc svg{width:20px;height:20px;transform:rotate(-90deg);}
+.micro-track{fill:none;stroke:var(--ash2);stroke-width:2.5;}
+.micro-fill{
+  fill:none;stroke:var(--gold);stroke-width:2.5;stroke-linecap:round;
+  stroke-dasharray:53;stroke-dashoffset:53;
+  transition:stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1) var(--delay,0s);
+}
+.tag-row.mastered .micro-fill{stroke:var(--emerald);}
+.tag-row.untouched .micro-fill{stroke:var(--ash2);}
+
+.tag-check{
+  width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ash2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:transparent;transition:all .2s;
+}
+.tag-row.selected .tag-check{background:var(--gold);border-color:var(--gold);color:#0e0b05;}
+
+/* ── SKELETON ── */
+@keyframes sk{0%,100%{opacity:.25}50%{opacity:.65}}
+.tag-row-skel{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 0 9px 10px;border-bottom:1px solid var(--ash2);
+}
+.skel{background:var(--ash2);border-radius:3px;animation:sk 1.4s ease infinite;}
+
+/* ── CTA BAR ── */
+.cta-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  padding:12px 16px max(12px,env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--bg) 70%,transparent);
+  display:flex;flex-direction:column;align-items:stretch;gap:6px;
+}
+.cta-label{
+  font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ash);text-align:center;min-height:12px;
+}
+.cta-btn{
+  background:linear-gradient(135deg,var(--gold),#8a5e00);color:#0e0b05;border:none;
+  border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;
+  font-weight:500;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
+  transition:opacity .2s,transform .1s;
+}
+.cta-btn:active{transform:scale(.97);}
+.cta-btn:disabled{opacity:.35;cursor:not-allowed;}
+
 .dir-footer{
   text-align:center;font-size:7px;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--ash);padding:8px 0 12px;flex-shrink:0;position:relative;z-index:1;
-  opacity:.4;
+  color:var(--ash);padding:8px 0 12px;flex-shrink:0;position:relative;z-index:1;opacity:.4;
 }
   </style>
 </head>
 <body>
 
 <div class="chrome">
-  <div class="chrome-left">
-    <span class="wordmark">NET JRF PATH</span>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;">
+  <span class="wordmark">NET JRF PATH</span>
+  <div class="chrome-right">
+    <div class="player-pill" id="playerPill" style="display:none;">
+      <span class="pip"></span><span id="playerName"></span>
+    </div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
   </div>
 </div>
 
-<div class="page-hero">
-  <div class="page-hero-title">Choose Your Focus</div>
-  <div class="page-hero-sub">Select topics to build your study session</div>
-</div>
-
-<div class="sections" id="sections">
-  <!-- skeleton while loading -->
-  <div class="section">
-    <div class="section-head">
-      <span class="section-name">Topics</span>
-      <span class="section-meta skel-block" style="width:48px;height:9px;display:inline-block;border-radius:3px;"></span>
+<!-- Hero -->
+<div class="hero" id="hero">
+  <div class="hero-ring-wrap">
+    <svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+      <circle class="ring-track" cx="48" cy="48" r="42"/>
+      <circle class="ring-fill" id="heroRing" cx="48" cy="48" r="42"/>
+    </svg>
+    <div class="hero-center">
+      <div class="hero-pct" id="heroPct">0%</div>
+      <div class="hero-pct-label">mastered</div>
     </div>
-    ${[...Array(6)].map(() => `
-    <div class="tag-row-skel">
-      <div class="skel-block" style="width:14px;height:14px;border-radius:3px;flex-shrink:0;"></div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-        <div class="skel-block" style="width:55%;height:9px;border-radius:3px;"></div>
-        <div class="skel-block" style="width:30%;height:7px;border-radius:3px;opacity:.5;"></div>
-      </div>
-      <div class="skel-block" style="width:18px;height:18px;border-radius:50%;"></div>
-    </div>`).join('')}
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num skel" id="heroMastered" style="width:36px;"></div>
+      <div class="hero-stat-lbl">mastered</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num skel" id="heroInProgress" style="width:36px;"></div>
+      <div class="hero-stat-lbl">in progress</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num skel" id="heroUntouched" style="width:36px;"></div>
+      <div class="hero-stat-lbl">not started</div>
+    </div>
   </div>
 </div>
 
+<div class="sections" id="sections"></div>
+
 <div class="cta-bar">
-  <div class="cta-selected" id="ctaLabel"></div>
-  <button class="cta-btn" id="ctaBtn" onclick="startStudySession()" disabled>
-    Initialize Session ›
-  </button>
+  <div class="cta-label" id="ctaLabel"></div>
+  <button class="cta-btn" id="ctaBtn" onclick="startStudySession()" disabled>Initialize Session ›</button>
 </div>
 
 <script>
 const SUPABASE_URL = 'https://rrxxthnfugzjhqjvbiyf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ';
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// tag → emoji mapping (fallback to 📌)
+const CIRC_HERO  = 264;
+const CIRC_MICRO = 53;
+
 const TAG_ICONS = {
   'grammar':'✏️','vocabulary':'📖','idioms':'💬','literature':'📚',
   'poetry':'🎭','comprehension':'🔍','writing':'✍️','tense':'⏳',
@@ -247,23 +284,140 @@ function iconFor(tag) {
   return '📌';
 }
 
-let tagCounts = {}; // tag → question count
+let tagCounts    = {};  // tag → total questions
+let tagMastered  = {};  // tag → questions ever answered correctly
 let selectedTags = new Set();
 
-async function loadTags() {
-  const { data, error } = await client.from('questions').select('tags');
-  if (error) { console.error(error); return; }
+// ── THEME ──
+const THEME_KEY = 'langLabTheme';
+function applyTheme(t) {
+  document.documentElement.classList.toggle('light', t === 'light');
+  document.getElementById('themeBtn').textContent = t === 'light' ? '🌙' : '☀️';
+}
+function toggleTheme() {
+  const n = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, n); applyTheme(n);
+}
+applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 
-  // count questions per tag
-  data.forEach(q => (q.tags||[]).forEach(t => {
-    tagCounts[t] = (tagCounts[t] || 0) + 1;
-  }));
-
-  const allTags = Object.keys(tagCounts).sort();
-  renderTags(allTags);
+// ── SKELETON ──
+function renderSkeleton() {
+  const el = document.getElementById('sections');
+  el.innerHTML = `
+    <div class="section">
+      <div class="section-head">
+        <span class="section-name">Topics</span>
+        <span class="skel" style="width:48px;height:9px;display:inline-block;border-radius:3px;"></span>
+      </div>
+      ${[...Array(6)].map(() => `
+      <div class="tag-row-skel">
+        <div class="skel" style="width:14px;height:14px;border-radius:3px;flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+          <div class="skel" style="width:55%;height:9px;border-radius:3px;"></div>
+          <div class="skel" style="width:30%;height:7px;border-radius:3px;opacity:.5;"></div>
+        </div>
+        <div class="skel" style="width:18px;height:18px;border-radius:50%;"></div>
+      </div>`).join('')}
+    </div>`;
 }
 
-function renderTags(tags) {
+// ── INIT ──
+async function init() {
+  // Verify session — redirect if not logged in
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (!session) { window.location.href = './index.html'; return; }
+
+  // Show player name
+  const { data: profile } = await sbClient
+    .from('profiles')
+    .select('full_name')
+    .eq('id', session.user.id)
+    .single();
+
+  if (profile?.full_name) {
+    document.getElementById('playerName').textContent = profile.full_name;
+    document.getElementById('playerPill').style.display = 'inline-flex';
+  }
+
+  renderSkeleton();
+
+  // Load all questions + their tags
+  const { data: questions, error: qErr } = await sbClient
+    .from('questions')
+    .select('id, tags')
+    .eq('is_active', true);
+
+  if (qErr || !questions) { console.error(qErr); return; }
+
+  // Build tagCounts
+  questions.forEach(q => {
+    (q.tags || []).forEach(t => {
+      tagCounts[t] = (tagCounts[t] || 0) + 1;
+    });
+  });
+
+  // Load this student's mastered questions from the view
+  const { data: progress } = await sbClient
+    .from('student_progress')
+    .select('question_id, tags, ever_correct')
+    .eq('user_id', session.user.id)
+    .eq('ever_correct', true);
+
+  // Build tagMastered
+  (progress || []).forEach(row => {
+    (row.tags || []).forEach(t => {
+      tagMastered[t] = (tagMastered[t] || 0) + 1;
+    });
+  });
+
+  renderHero();
+  renderTags();
+}
+
+// ── HERO ──
+function renderHero() {
+  const allTags   = Object.keys(tagCounts);
+  const totalQ    = allTags.reduce((s, t) => s + tagCounts[t], 0);
+  const totalM    = allTags.reduce((s, t) => s + (tagMastered[t] || 0), 0);
+  const masteredTags   = allTags.filter(t => (tagMastered[t]||0) >= tagCounts[t]).length;
+  const inProgressTags = allTags.filter(t => (tagMastered[t]||0) > 0 && (tagMastered[t]||0) < tagCounts[t]).length;
+  const untouchedTags  = allTags.filter(t => !(tagMastered[t]||0)).length;
+  const pct = totalQ === 0 ? 0 : Math.round(totalM / totalQ * 100);
+
+  // Animate ring
+  requestAnimationFrame(() => setTimeout(() => {
+    document.getElementById('heroRing').style.strokeDashoffset = CIRC_HERO * (1 - pct / 100);
+    if (pct >= 100) document.getElementById('heroRing').classList.add('complete');
+  }, 120));
+
+  // Count-up
+  const duration = 1400, steps = 50, interval = duration / steps;
+  let step = 0;
+  const pctEl = document.getElementById('heroPct');
+  const mEl   = document.getElementById('heroMastered');
+  const ipEl  = document.getElementById('heroInProgress');
+  const utEl  = document.getElementById('heroUntouched');
+  [mEl, ipEl, utEl].forEach(el => el.className = 'hero-stat-num');
+  const iv = setInterval(() => {
+    step++;
+    const ease = 1 - Math.pow(1 - step/steps, 3);
+    pctEl.textContent = Math.round(ease * pct) + '%';
+    mEl.textContent   = Math.round(ease * masteredTags);
+    ipEl.textContent  = Math.round(ease * inProgressTags);
+    utEl.textContent  = Math.round(ease * untouchedTags);
+    if (step >= steps) {
+      clearInterval(iv);
+      pctEl.textContent = pct + '%';
+      mEl.textContent   = masteredTags;
+      ipEl.textContent  = inProgressTags;
+      utEl.textContent  = untouchedTags;
+    }
+  }, interval);
+}
+
+// ── TAG ROWS ──
+function renderTags() {
+  const allTags = Object.keys(tagCounts).sort();
   const el = document.getElementById('sections');
   el.innerHTML = '';
 
@@ -274,25 +428,52 @@ function renderTags(tags) {
   head.className = 'section-head';
   head.innerHTML = `
     <span class="section-name">Topics</span>
-    <span class="select-all-pill" onclick="toggleAll()" id="selectAllPill">Select all</span>
-  `;
+    <span class="select-all-pill" id="selectAllPill" onclick="toggleAll()">Select all</span>`;
   section.appendChild(head);
 
-  tags.forEach((tag, i) => {
+  allTags.forEach((tag, i) => {
+    const total    = tagCounts[tag] || 0;
+    const mastered = tagMastered[tag] || 0;
+    const pct      = total === 0 ? 0 : Math.round(mastered / total * 100);
+    const state    = mastered >= total && total > 0 ? 'mastered'
+                   : mastered > 0                   ? 'in-progress'
+                   :                                  'untouched';
+    const microOffset = CIRC_MICRO * (1 - pct / 100);
+    const delay = (i * 0.035).toFixed(2);
+
     const row = document.createElement('div');
-    row.className = 'tag-row';
-    row.style.animationDelay = (i * 0.035).toFixed(2) + 's';
+    row.className = `tag-row ${state}`;
+    row.style.animationDelay = delay + 's';
     row.dataset.tag = tag;
     row.innerHTML = `
       <span class="tag-icon">${iconFor(tag)}</span>
       <div class="tag-info">
         <div class="tag-name">${tag}</div>
-        <div class="tag-count">${tagCounts[tag]} question${tagCounts[tag]!==1?'s':''}</div>
+        <div class="tag-sub">${mastered} of ${total} mastered</div>
       </div>
-      <div class="tag-check">✓</div>
-    `;
+      <div class="tag-right">
+        <span class="tag-pct">${state === 'mastered' ? '✓' : state === 'untouched' ? '—' : pct + '%'}</span>
+        <div class="micro-arc">
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <circle class="micro-track" cx="10" cy="10" r="8.4"/>
+            <circle class="micro-fill" id="mf-${tag.replace(/\s+/g,'_')}"
+              cx="10" cy="10" r="8.4"
+              style="stroke-dashoffset:${CIRC_MICRO};--delay:${delay}s"/>
+          </svg>
+        </div>
+        <div class="tag-check">✓</div>
+      </div>`;
+
     row.onclick = () => toggleTag(tag, row);
     section.appendChild(row);
+
+    // animate micro arc
+    if (pct > 0) {
+      requestAnimationFrame(() => setTimeout(() => {
+        const mf = document.getElementById('mf-' + tag.replace(/\s+/g,'_'));
+        if (mf) mf.style.strokeDashoffset = microOffset;
+      }, 80 + i * 40));
+    }
   });
 
   el.appendChild(section);
@@ -315,11 +496,9 @@ function toggleAll() {
   const allTags = Object.keys(tagCounts);
   const allSelected = allTags.every(t => selectedTags.has(t));
   if (allSelected) {
-    // deselect all
     selectedTags.clear();
     document.querySelectorAll('.tag-row').forEach(r => r.classList.remove('selected'));
   } else {
-    // select all
     allTags.forEach(t => selectedTags.add(t));
     document.querySelectorAll('.tag-row').forEach(r => r.classList.add('selected'));
   }
@@ -336,7 +515,7 @@ function updateSelectAllPill() {
 }
 
 function updateCTA() {
-  const btn = document.getElementById('ctaBtn');
+  const btn   = document.getElementById('ctaBtn');
   const label = document.getElementById('ctaLabel');
   const count = selectedTags.size;
   if (count === 0) {
@@ -344,49 +523,33 @@ function updateCTA() {
     label.textContent = '';
   } else {
     btn.disabled = false;
-    const totalQ = [...selectedTags].reduce((s,t) => s + (tagCounts[t]||0), 0);
-    label.textContent = `${count} topic${count!==1?'s':''} · ${totalQ} question${totalQ!==1?'s':''}`;
+    const totalQ = [...selectedTags].reduce((s, t) => s + (tagCounts[t] || 0), 0);
+    label.textContent = `${count} topic${count !== 1 ? 's' : ''} · ${totalQ} question${totalQ !== 1 ? 's' : ''}`;
   }
 }
 
 async function startStudySession() {
-  const activeTags = [...selectedTags];
-  if (activeTags.length === 0) return;
-
+  if (selectedTags.size === 0) return;
   const btn = document.getElementById('ctaBtn');
-  btn.disabled = true;
-  btn.textContent = 'Loading…';
+  btn.disabled = true; btn.textContent = 'Loading…';
 
-  const { data: questions, error } = await client
+  const { data: questions, error } = await sbClient
     .from('questions')
     .select('id, question_text, answer_text, explanation, tags, year')
-    .overlaps('tags', activeTags);
+    .eq('is_active', true)
+    .overlaps('tags', [...selectedTags]);
 
-  if (error || !questions || questions.length === 0) {
-    btn.disabled = false;
-    btn.textContent = 'Initialize Session ›';
-    alert(error ? 'Error loading questions.' : 'No questions found for selected topics.');
+  if (error || !questions?.length) {
+    btn.disabled = false; btn.textContent = 'Initialize Session ›';
+    alert(error ? 'Error loading questions.' : 'No questions found.');
     return;
   }
 
-  const shuffled = [...questions].sort(() => Math.random() - 0.5);
-  localStorage.setItem('study_questions', JSON.stringify(shuffled));
+  localStorage.setItem('study_questions', JSON.stringify([...questions].sort(() => Math.random() - 0.5)));
   window.location.href = './quiz-engine.html';
 }
 
-// ── THEME ──
-const THEME_KEY = 'langLabTheme';
-function applyTheme(t) {
-  document.documentElement.classList.toggle('light', t === 'light');
-  document.getElementById('themeBtn').textContent = t === 'light' ? '🌙' : '☀️';
-}
-function toggleTheme() {
-  const n = document.documentElement.classList.contains('light') ? 'dark' : 'light';
-  localStorage.setItem(THEME_KEY, n); applyTheme(n);
-}
-applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
-
-loadTags();
+init();
 </script>
 </body>
 </html>
