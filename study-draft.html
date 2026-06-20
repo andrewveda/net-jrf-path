@@ -344,8 +344,7 @@ async function init() {
   // Load all questions + their tags
   const { data: questions, error: qErr } = await sbClient
     .from('questions')
-    .select('id, tags')
-    .eq('is_active', true);
+    .select('id, tags');
 
   if (qErr || !questions) { console.error(qErr); return; }
 
@@ -536,7 +535,6 @@ async function startStudySession() {
   const { data: questions, error } = await sbClient
     .from('questions')
     .select('id, question_text, answer_text, explanation, tags, year')
-    .eq('is_active', true)
     .overlaps('tags', [...selectedTags]);
 
   if (error || !questions?.length) {
