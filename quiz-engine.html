@@ -12,7 +12,6 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
-/* Keeping your exact original CSS */
 :root {
   --bg-main: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
   --card-bg: #ffffff;
@@ -101,6 +100,12 @@ body {
 }
 .drag-item:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
 .drag-item.selected { background: var(--accent-main); color: #fff; }
+/* Selected drop-zone highlight */
+.drop-zone.zone-selected {
+  border-color: var(--accent-main);
+  background: #fff8e1;
+  box-shadow: 0 0 0 3px rgba(255,152,0,0.25);
+}
 
 /* ---- DROP ZONES ---- */
 .drop-container { display: flex; flex-direction: column; gap: 1rem; align-items: center; }
@@ -135,20 +140,6 @@ body {
   animation: fadeIn 0.4s ease;
 }
 @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-
-/* ---- MOTIVATION ---- */
-#motivationBox {
-  position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
-  width: calc(100% - 24px); max-width: 520px;
-  z-index: 9999;
-  font-size: 1.4rem; font-weight: 800; color: var(--accent-main);
-  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-  border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  padding: 1rem 1.2rem;
-  cursor: pointer; opacity: 0; transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-#motivationBox.show { opacity: 1; pointer-events: auto; }
 
 /* ---- SCORE PORTAL ---- */
 .score-portal {
@@ -328,8 +319,6 @@ body {
 
 </div>
 
-<div id="motivationBox"></div>
-
 <script>
 const SUPABASE_URL = 'https://rrxxthnfugzjhqjvbiyf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ';
@@ -337,10 +326,12 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let pageAttempts = [];
 let groupAttemptId = null;
-let rawQuestions = [];   // flat list from Supabase/localStorage
-let quizGroups = [];     // grouped into sets of 3 for the matching format
+let rawQuestions = [];
+let quizGroups = [];
 let current = 0, wrongGroups = [], correctCount = 0, totalWrongGuesses = 0;
 let gemsCount = 0, startTime, timerInterval, playerName = '', playerDept = '', selectedOption = null;
+let selectedZone = null;   // NEW: tracks a drop-zone selected first
+let repeatCount = 0;       // NEW: tracks how many extra rounds have been added
 
 // ---- AUDIO ----
 let isMuted = localStorage.getItem('questMuted') === 'true';
@@ -374,40 +365,17 @@ function triggerMegaConfetti() {
   }, 250);
 }
 
-// ---- MOTIVATION ----
-const rightMessages = [
-  "'name' is unstoppable!","'name' has got the right answer because 'name' loves trying!",
-  "Nothing can slow 'name' down today!","Who is awesome? 'name'!",
-  "'name' proves that effort beats talent every time!","Every correct answer takes 'name' one step closer to greatness!"
-];
-const wrongMessages = [
-  "'name' loves failures because 'name', like Edison, knows failure is the stepping stone to success.",
-  "Every mistake makes 'name' stronger.","Failure is feedback, and 'name' takes feedback like a champion.",
-  "Every wrong attempt brings 'name' closer to the right one."
-];
-function showMotivation(isCorrect) {
-  const box = document.getElementById('motivationBox');
-  const list = isCorrect ? rightMessages : wrongMessages;
-  box.innerHTML = list[Math.floor(Math.random()*list.length)].replace(/'name'/g, playerName);
-  box.classList.add('show');
-  clearTimeout(box._t);
-  box._t = setTimeout(() => box.classList.remove('show'), 3000);
-}
-document.getElementById('motivationBox').onclick = function() { this.classList.remove('show'); };
-
 // ---- LOAD QUESTIONS ----
 async function loadQuestions() {
-  // Try localStorage first (set by study.html)
   const stored = localStorage.getItem('study_questions');
   if (stored) {
     try {
       rawQuestions = JSON.parse(stored);
-      localStorage.removeItem('study_questions'); // consume it
+      localStorage.removeItem('study_questions');
       if (rawQuestions.length > 0) { groupQuestions(); return; }
     } catch(e) {}
   }
 
-  // Fallback: load all active questions from Supabase
   const { data, error } = await sbClient
     .from('questions')
     .select('id, question_text, answer_text, explanation')
@@ -427,7 +395,6 @@ async function loadQuestions() {
   groupQuestions();
 }
 
-// Group flat questions into sets of 3 for drag-match format
 function groupQuestions() {
   const shuffled = [...rawQuestions].sort(() => Math.random() - 0.5);
   quizGroups = [];
@@ -435,19 +402,18 @@ function groupQuestions() {
     const chunk = shuffled.slice(i, i+3);
     if (chunk.length === 0) break;
     quizGroups.push({
-    questionItems: chunk.map(q => ({
-  id: q.id,
-  word: q.question_text,
-  answer: q.answer_text,
-  explanation: q.explanation || null
-})),
+      questionItems: chunk.map(q => ({
+        id: q.id,
+        word: q.question_text,
+        answer: q.answer_text,
+        explanation: q.explanation || null
+      })),
       answers: chunk.map(q => q.answer_text)
     });
   }
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('nameForm').style.display = 'flex';
 
-  // Auto-restore name/dept
   const n = localStorage.getItem('questPlayerName');
   const d = localStorage.getItem('questPlayerDept');
   if (n) document.getElementById('nameInput').value = n;
@@ -469,49 +435,59 @@ function beginQuiz() {
 }
 
 async function startQuiz() {
-  current = 0; correctCount = 0; totalWrongGuesses = 0; gemsCount = 0; wrongGroups = [];
+  current = 0; correctCount = 0; totalWrongGuesses = 0; gemsCount = 0;
+  wrongGroups = []; repeatCount = 0;
   startTime = Date.now();
   document.getElementById('gemsCounter').innerText = '💎 0';
 
   const { data: { session } } = await sbClient.auth.getSession();
 
- const { data: groupData, error } = await sbClient
+  const { data: groupData, error } = await sbClient
     .from('group_attempts')
     .insert({
       user_id: session?.user?.id || null,
-      correct_count: 0,  
-      wrong_count: 0,    
+      correct_count: 0,
+      wrong_count: 0,
       time_spent_seconds: 0
     })
     .select()
     .single();
+
   if (error) {
     console.error('Supabase 400 Error Details:', error.message, error.details, error.hint);
     alert(`Failed to start session: ${error.message}`);
-    return; // Stop the quiz from starting if the DB insert fails
+    return;
   }
-  // ------------------------
 
-  if (groupData) {
-    groupAttemptId = groupData.id;
-  }
+  if (groupData) groupAttemptId = groupData.id;
 
   loadQuestion();
-  startTimer(); 
+  startTimer();
+}
+
+// ---- UPDATE PROGRESS TRACKER ----
+function updateProgressTracker() {
+  const total = quizGroups.length;
+  const pos   = current + 1;
+  const extra = repeatCount > 0 ? ` (+${repeatCount})` : '';
+  document.getElementById('progressTracker').innerText = `📍 ${pos} of ${total}${extra}`;
 }
 
 // ---- LOAD QUESTION GROUP ----
 function loadQuestion() {
   if (current >= quizGroups.length) return showScore();
   selectedOption = null;
+  selectedZone   = null;
   document.getElementById('explanationArea').innerHTML = '';
 
   const data = quizGroups[current];
-  document.getElementById('progressTracker').innerText = `📍 ${current+1} of ${quizGroups.length}`;
-  document.getElementById('question').innerText = 'Match each clue to the correct author / answer:';
+  updateProgressTracker();
 
-  const dragEl    = document.getElementById('dragOptions');
-  const dropEl    = document.getElementById('dropContainer');
+  // REMOVED: the "Match each clue…" heading — question div is now empty / hidden
+  document.getElementById('question').innerText = '';
+
+  const dragEl = document.getElementById('dragOptions');
+  const dropEl = document.getElementById('dropContainer');
   dragEl.innerHTML = ''; dropEl.innerHTML = '';
 
   const shuffled = [...data.answers].sort(() => Math.random() - 0.5);
@@ -528,18 +504,50 @@ function loadQuestion() {
     drop.innerText = item.word;
     drop.dataset.answer = item.answer;
     drop.dataset.explanation = item.explanation || '';
-    drop.onclick = () => placeOption(drop);
+    drop.onclick = () => selectZone(drop);
     dropEl.appendChild(drop);
   });
 }
 
+// ---- BIDIRECTIONAL SELECTION ----
+
+// Called when a drag-item is tapped
 function selectOption(div) {
+  // If a zone is already selected → attempt placement immediately
+  if (selectedZone && !selectedZone.classList.contains('filled')) {
+    selectedOption = div;
+    placeOption(selectedZone);
+    return;
+  }
+  // Otherwise just highlight the item
   if (selectedOption) selectedOption.classList.remove('selected');
-  selectedOption = div; div.classList.add('selected');
+  selectedOption = div;
+  div.classList.add('selected');
+}
+
+// Called when a drop-zone is tapped
+function selectZone(dropZone) {
+  if (dropZone.classList.contains('filled')) return;
+
+  // If an item is already selected → attempt placement immediately
+  if (selectedOption) {
+    placeOption(dropZone);
+    return;
+  }
+
+  // Otherwise highlight the zone
+  if (selectedZone) selectedZone.classList.remove('zone-selected');
+  selectedZone = dropZone;
+  dropZone.classList.add('zone-selected');
 }
 
 function placeOption(dropZone) {
   if (!selectedOption || dropZone.classList.contains('filled')) return;
+
+  // Clear highlights
+  if (selectedZone) { selectedZone.classList.remove('zone-selected'); selectedZone = null; }
+  selectedOption.classList.remove('selected');
+
   const answer = selectedOption.innerText;
   const correctAnswer = dropZone.dataset.answer;
 
@@ -549,21 +557,16 @@ function placeOption(dropZone) {
 
   if (answer === correctAnswer) {
     triggerConfetti(); playApplause();
-    correctCount++; 
-    
-    // Push correct attempt to the ledger
-    pageAttempts.push({ id: item.id, isCorrect: true }); 
-    
+    correctCount++;
+    pageAttempts.push({ id: item.id, isCorrect: true });
     gemsCount++;
     const gc = document.getElementById('gemsCounter');
     gc.innerText = `💎 ${gemsCount}`;
     gc.classList.add('gem-pop'); setTimeout(() => gc.classList.remove('gem-pop'), 500);
-    showMotivation(true);
     dropZone.innerHTML = `<span>${dropZone.innerText.replace('___', `<strong>${answer}</strong>`)}</span>`;
     dropZone.classList.add('correct', 'filled');
     selectedOption.style.display = 'none';
 
-    // Show explanation if available
     if (dropZone.dataset.explanation) {
       const expDiv = document.createElement('div');
       expDiv.classList.add('explanation-box');
@@ -572,18 +575,20 @@ function placeOption(dropZone) {
     }
   } else {
     playWrong(); totalWrongGuesses++; gemsCount--;
-    
-    // Push wrong attempt to the ledger
     pageAttempts.push({ id: item.id, isCorrect: false });
-    
     document.getElementById('gemsCounter').innerText = `💎 ${gemsCount}`;
-    showMotivation(false);
     dropZone.classList.add('wrong');
     setTimeout(() => dropZone.classList.remove('wrong'), 600);
-    if (!wrongGroups.includes(quizGroups[current])) wrongGroups.push(quizGroups[current]);
+
+    // Add this group to wrong pile (once) and update tracker immediately
+    if (!wrongGroups.includes(quizGroups[current])) {
+      wrongGroups.push(quizGroups[current]);
+      repeatCount++;
+      updateProgressTracker();
+    }
   }
 
-  selectedOption.classList.remove('selected'); selectedOption = null;
+  selectedOption = null;
 
   // Check if all filled
   const remaining = document.querySelectorAll('.drop-zone:not(.filled)');
@@ -608,7 +613,7 @@ function startTimer() {
 }
 
 function calculateAccuracy() {
-  const total = correctCount + totalWrongGuesses; 
+  const total = correctCount + totalWrongGuesses;
   return total === 0 ? 100 : Math.round((correctCount / total) * 100);
 }
 function getAccuracyColor(acc) {
@@ -639,7 +644,6 @@ function showScore() {
   triggerMegaConfetti();
 
   document.getElementById('quizContent').style.display = 'none';
-  document.getElementById('motivationBox').classList.remove('show');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const accuracy = calculateAccuracy();
@@ -665,7 +669,7 @@ function showScore() {
     </div>
     <div class="stats-grid">
       <div class="stat-card correct-card"><div class="stat-emoji">✅</div><div class="stat-value">${correctCount}</div><div class="stat-label">Correct</div></div>
-    <div class="stat-card wrong-card"><div class="stat-emoji">❌</div><div class="stat-value">${totalWrongGuesses}</div><div class="stat-label">Wrong</div></div>
+      <div class="stat-card wrong-card"><div class="stat-emoji">❌</div><div class="stat-value">${totalWrongGuesses}</div><div class="stat-label">Wrong</div></div>
       <div class="stat-card gems-card"><div class="stat-emoji">💎</div><div class="stat-value">${gemsCount}</div><div class="stat-label">Gems</div></div>
       <div class="stat-card time-card"><div class="stat-emoji">⏱️</div><div class="stat-value">${timeStr}</div><div class="stat-label">Time</div></div>
     </div>
@@ -678,14 +682,13 @@ function showScore() {
 </div>`;
 
   setTimeout(() => animateAccuracy(accuracy), 80);
-
 }
+
 async function saveCurrentPage() {
   if (pageAttempts.length === 0) return;
 
   const { data: { session } } = await sbClient.auth.getSession();
 
-  // Map the array ledger into Supabase rows
   const rows = pageAttempts.map(attempt => ({
     group_attempt_id: groupAttemptId,
     user_id: session?.user?.id || null,
@@ -693,16 +696,10 @@ async function saveCurrentPage() {
     is_correct: attempt.isCorrect
   }));
 
-  const { error } = await sbClient
-    .from('student_attempts')
-    .insert(rows);
+  const { error } = await sbClient.from('student_attempts').insert(rows);
+  if (error) console.error('Error saving page:', error);
 
-  if (error) {
-    console.error('Error saving page:', error);
-  }
-  
-  // Clear the array for the next page
-  pageAttempts = []; 
+  pageAttempts = [];
 }
 
 // ---- PDF ----
@@ -737,7 +734,7 @@ function downloadPDF() {
     body: [
       ['Total Groups', quizGroups.length.toString()],
       ['Correct Answers', correctCount.toString()],
-      ['Wrong Attempts', totalWrongGuesses.toString()], // <-- Removed Math.abs
+      ['Wrong Attempts', totalWrongGuesses.toString()],
       ['Gems Earned', gemsCount.toString()],
       ['Accuracy', calculateAccuracy() + '%'],
       ['Total Time', `${Math.floor(totalTime/60)}m ${totalTime%60}s`]
@@ -806,7 +803,6 @@ async function verifyAccess() {
 (async () => {
   const ok = await verifyAccess();
   if (!ok) return;
-  
   loadQuestions();
 })();
 </script>
