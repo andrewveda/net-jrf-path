@@ -1,1 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request Access — NET JRF PATH</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --ink: #1a1510;
+      --paper: #f5f0e8;
+      --accent: #c0392b;
+      --accent-light: #e8d5c4;
+      --gold: #b8860b;
+      --muted: #6b5e52;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .left {
+      background: var(--ink);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .left::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 340px; height: 340px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(192,57,43,0.25) 0%, transparent 70%);
+    }
+
+    .left::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: -40px;
+      width: 240px; height: 240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(184,134,11,0.2) 0%, transparent 70%);
+    }
+
+    .left-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+      opacity: 0.7;
+    }
+
+    .left-quote {
+      position: relative;
+      z-index: 1;
+    }
+
+    .left-quote blockquote {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: clamp(1.6rem, 2.5vw, 2.4rem);
+      line-height: 1.4;
+      color: var(--paper);
+      margin-bottom: 1.2rem;
+    }
+
+    .left-quote cite {
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-style: normal;
+    }
+
+    .left-bottom {
+      font-size: 0.75rem;
+      color: rgba(245,240,232,0.3);
+      letter-spacing: 0.05em;
+    }
+
+    .divider {
+      width: 1px;
+      background: var(--ink);
+      opacity: 0.12;
+    }
+
+    .right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4rem 4rem;
+    }
+
+    .eyebrow {
+      font-size: 0.72rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.8rem;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 3vw, 3rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 0.6rem;
+      color: var(--ink);
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 300;
+      margin-bottom: 3rem;
+      line-height: 1.6;
+    }
+
+    .btn-google {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      border-radius: 4px;
+      padding: 0.95rem 1.6rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      width: 100%;
+      max-width: 320px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-google::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+      z-index: 0;
+    }
+
+    .btn-google:hover::after { transform: scaleX(1); }
+    .btn-google > * { position: relative; z-index: 1; }
+
+    .btn-google:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-google svg { flex-shrink: 0; }
+
+    .divider-text {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.8rem 0;
+      max-width: 320px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+    }
+
+    .divider-text::before,
+    .divider-text::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--ink);
+      opacity: 0.12;
+    }
+
+    .access-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 300px;
+    }
+
+    .access-note a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .access-note a:hover { text-decoration: underline; }
+
+    #status {
+      margin-top: 1.2rem;
+      font-size: 0.82rem;
+      color: var(--accent);
+      min-height: 1.2em;
+      max-width: 320px;
+    }
+
+    /* Pending-state card, shown after a signed-in-but-not-approved check */
+    .pending-card {
+      display: none;
+      max-width: 340px;
+      border: 1px solid var(--ink);
+      border-opacity: 0.15;
+      border-radius: 6px;
+      padding: 1.4rem 1.6rem;
+      background: rgba(184, 134, 11, 0.06);
+      border-left: 3px solid var(--gold);
+    }
+
+    .pending-card.visible { display: block; }
+
+    .pending-card .label {
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.5rem;
+    }
+
+    .pending-card p {
+      font-size: 0.88rem;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .pending-card .email {
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(245,240,232,0.3);
+      border-top-color: var(--paper);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .right > * {
+      animation: fadeUp 0.5s ease both;
+    }
+    .right > *:nth-child(1) { animation-delay: 0.05s; }
+    .right > *:nth-child(2) { animation-delay: 0.1s; }
+    .right > *:nth-child(3) { animation-delay: 0.15s; }
+    .right > *:nth-child(4) { animation-delay: 0.2s; }
+    .right > *:nth-child(5) { animation-delay: 0.25s; }
+    .right > *:nth-child(6) { animation-delay: 0.3s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 700px) {
+      .page { grid-template-columns: 1fr; grid-template-rows: auto 1fr; overflow: hidden; }
+      .left { padding: 2rem; min-height: 180px; }
+      .left-quote blockquote { font-size: 1.2rem; }
+      .left-bottom { display: none; }
+      .divider { display: none; }
+      .right { padding: 2.5rem 2rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="left">
+    <div class="left-logo">NET JRF · English</div>
+    <div class="left-quote">
+      <blockquote>"The beautiful thing about learning is that no one can take it away from you."</blockquote>
+      <cite>— B.B. King</cite>
+    </div>
+    <div class="left-bottom">Member portal · Restricted access</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="right">
+    <p class="eyebrow">Request Access</p>
+    <h1 id="heading">You're on the list.</h1>
+    <p class="subtitle" id="subtitleText">
+      Signing in registered your interest — no further<br>action is needed on your end.
+    </p>
+
+    <div id="status"></div>
+
+    <div class="pending-card" id="pendingCard">
+      <div class="label">Pending approval</div>
+      <p>
+        We received a sign-in request from <span class="email" id="pendingEmail"></span>.
+        Your account is being reviewed, and we'll notify you at this
+        email once it's approved.
+      </p>
+    </div>
+
+    <p class="access-note" id="accessNote">
+      Already approved?
+      <a href="./index.html">Sign in here →</a><br><br>
+      Questions about your access? Email
+      <a href="mailto:hello@andrewveda.com">hello@andrewveda.com</a>.
+    </p>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://rrxxthnfugzjhqjvbiyf.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHh0aG5mdWd6amhxanZiaXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MDk3MzMsImV4cCI6MjA5NjM4NTczM30.R_r-PJ_VLI7-_yAswJTC6dhuokKQcNIrvNksfAfXIUQ';
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const status = document.getElementById('status');
+  const pendingCard = document.getElementById('pendingCard');
+  const pendingEmail = document.getElementById('pendingEmail');
+  const subtitleText = document.getElementById('subtitleText');
+
+  // This page never triggers sign-in itself — a person only lands here
+  // after already attempting Google Sign-In on index.html. We just read
+  // whatever session that flow left behind and report status.
+  async function init() {
+    const { data: { session } } = await client.auth.getSession();
+
+    if (!session) {
+      // No session found (e.g. someone navigated here directly, or the
+      // session expired). Keep the generic "you're on the list" copy
+      // and skip the email-specific card.
+      return;
+    }
+
+    status.textContent = 'Checking your access status…';
+
+    const { data: profile, error } = await client
+      .from('profiles')
+      .select('is_approved')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!error && profile && profile.is_approved === true) {
+      // Already approved — no need to sit on the register page
+      status.textContent = 'Access approved. Redirecting…';
+      window.location.href = './dashboard.html';
+      return;
+    }
+
+    // Not approved yet — show their email so they know which sign-in
+    // request is being reviewed.
+    status.textContent = '';
+    subtitleText.style.display = 'none';
+    pendingEmail.textContent = session.user.email || '';
+    pendingCard.classList.add('visible');
+  }
+
+  init();
+</script>
+</body>
+</html>
